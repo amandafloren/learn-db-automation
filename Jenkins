@@ -1,0 +1,39 @@
+#!groovy
+
+def isRunSucceed = true
+
+node {
+    def envTest
+    def testingList = env.getProperty("Testing")
+    def featureList = env.getProperty("Feature")
+
+    stage("Checkout") {
+        checkout scm
+    }
+
+
+    stage("Run Test") {
+        sh "/data2/maven/bin/mvn clean "
+        if (testingList?.trim()) {
+            sh 'rm Config.properties'
+            sh 'mv Config.properties'
+            sh "/data2/maven/bin/mvn clean"
+
+            for (String Type : testingList.split(",")) {
+
+                if (featureList?.trim()) {
+                    for (String dt : featureList.split(",")) {
+                        sh "/data2/maven/bin/mvn -Dtest=*" + dt + Type+ "* test"
+                    }
+                }
+            }
+        }
+    }
+
+    stage("Generate Report") {
+        if (isRunSucceed) {
+            cucumber fileIncludePattern: '**/*.json', jsonReportDirectory: 'target/cucumber/'
+        }
+    }
+
+}
